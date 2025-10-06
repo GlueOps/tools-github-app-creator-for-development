@@ -1,0 +1,17 @@
+{
+  "description": "GlueOps GitHub App for automated CI/CD and repository management",
+  "public": true,
+  "default_permissions": {
+    "contents": "write",
+    "discussions": "write",
+    "issues": "write",
+    "metadata": "read",
+    "pull_requests": "write",
+    "members": "read",
+    "organization_administration": "read",
+    "emails": "read",
+    "profile": "write"
+  },
+  "request_oauth_on_install": true,
+  "setup_on_update": true
+}
