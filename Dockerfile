@@ -8,7 +8,8 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # Install all dependencies (including devDependencies for build)
-RUN npm ci && npm cache clean --force
+# Using npm install instead of npm ci to handle cross-platform optional dependencies
+RUN npm install --ignore-scripts && npm cache clean --force
 
 # Add adapter-node for Docker builds
 RUN npm install @sveltejs/adapter-node
@@ -56,7 +57,7 @@ COPY --from=builder --chown=sveltekit:nodejs /app/package.json ./
 COPY --from=builder --chown=sveltekit:nodejs /app/package-lock.json* ./
 
 # Install only production dependencies
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm install --omit=dev --ignore-scripts && npm cache clean --force
 
 # Switch to non-root user
 USER sveltekit
