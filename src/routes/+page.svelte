@@ -10,7 +10,6 @@
 	let directInstallUrl = '';
 	let lastInstallationId = '';
 	let currentPhase = '';
-	let appCredentials: any = null;
 	let showFinalDetails = false;
 	let isInActiveFlow = false;
 	let showClearConfirm = false;
@@ -20,6 +19,10 @@
 	let userOrgApp: any = null;
 	let currentAppFlow = 'glueops'; // Start with 'glueops' now
 	let bothAppsComplete = false;
+	
+	// Redirect countdown state
+	let redirectCountdown = 0;
+	let redirectMessage = '';
 
 	// Check for active flow IMMEDIATELY to prevent form flashing
 	if (typeof window !== 'undefined') {
@@ -54,22 +57,6 @@
 		if (userOrgApp && userOrgApp.user_installation_id && userOrgApp.glueops_installation_id) {
 			bothAppsComplete = true;
 			showFinalDetails = true;
-		}
-		
-		// Legacy compatibility - migrate old single app to user app
-		const legacyDetails = sessionStorage.getItem('github-app-details');
-		if (legacyDetails && !storedUserApp) {
-			try {
-				const legacy = JSON.parse(legacyDetails);
-				userOrgApp = legacy;
-				appCredentials = legacy; // For backward compatibility
-				sessionStorage.setItem('github-user-app-details', legacyDetails);
-				if (storedInstallation) {
-					showFinalDetails = true;
-				}
-			} catch (e) {
-				console.warn('Failed to parse legacy app details:', e);
-			}
 		}
 	}
 
@@ -128,35 +115,41 @@
 				console.log(`Redirecting to install in user organization: ${userOrgName}...`);
 				sessionStorage.setItem('github-app-flow', 'user');
 				
-				// Get the user's organization ID first
-				setTimeout(async () => {
-					const appSlug = userOrgApp?.slug;
-					if (appSlug && userOrgName) {
-						try {
-							console.log(`Fetching ${userOrgName} organization ID...`);
-							const orgResponse = await fetch(`/api/get-org-id?org=${userOrgName}`);
-							
-							if (orgResponse.ok) {
-								const orgData = await orgResponse.json();
-								console.log(`Found ${userOrgName} org ID:`, orgData.id);
-								
-								// Use the organization ID for direct installation
-								const userInstallUrl = `https://github.com/apps/${appSlug}/installations/new/permissions?target_id=${orgData.id}&target_type=Organization`;
-								console.log(`Redirecting to ${userOrgName} install:`, userInstallUrl);
-								window.location.href = userInstallUrl;
-							} else {
-								console.warn('Could not fetch org ID, falling back to selection page');
-								const fallbackUrl = `https://github.com/apps/${appSlug}/installations/select_target`;
-								window.location.href = fallbackUrl;
-							}
-						} catch (error) {
-							console.error('Error fetching org ID:', error);
-							console.log('Falling back to target selection page');
-							const fallbackUrl = `https://github.com/apps/${appSlug}/installations/select_target`;
-							window.location.href = fallbackUrl;
+				// Get the user's organization ID first, then start countdown
+				const appSlug = userOrgApp?.slug;
+				if (appSlug && userOrgName) {
+					try {
+						console.log(`Fetching ${userOrgName} organization ID...`);
+						const orgResponse = await fetch(`/api/get-org-id?org=${userOrgName}`);
+						
+						let targetUrl: string;
+						if (orgResponse.ok) {
+							const orgData = await orgResponse.json();
+							console.log(`Found ${userOrgName} org ID:`, orgData.id);
+							targetUrl = `https://github.com/apps/${appSlug}/installations/new/permissions?target_id=${orgData.id}&target_type=Organization`;
+						} else {
+							console.warn('Could not fetch org ID, falling back to selection page');
+							targetUrl = `https://github.com/apps/${appSlug}/installations/select_target`;
 						}
+						
+						// Start 10 second countdown before redirect
+						redirectMessage = `Redirecting to install in ${userOrgName}...`;
+						redirectCountdown = 10;
+						const countdownInterval = setInterval(() => {
+							redirectCountdown--;
+							if (redirectCountdown <= 0) {
+								clearInterval(countdownInterval);
+								console.log(`Redirecting to ${userOrgName} install:`, targetUrl);
+								window.location.href = targetUrl;
+							}
+						}, 1000);
+					} catch (error) {
+						console.error('Error fetching org ID:', error);
+						console.log('Falling back to target selection page');
+						const fallbackUrl = `https://github.com/apps/${appSlug}/installations/select_target`;
+						window.location.href = fallbackUrl;
 					}
-				}, 1000);
+				}
 				
 			} else {
 				// Second installation - user's organization
@@ -377,75 +370,6 @@
 		console.groupEnd();
 	}
 
-	async function createCluster() {
-		if (!userOrgApp) {
-			console.error('No app data available for cluster creation');
-			return;
-		}
-
-		try {
-			console.log('Initiating cluster creation...');
-			
-			// Prepare comprehensive payload with all available data
-			const clusterPayload = {
-				// GitHub App credentials
-				app_id: userOrgApp.id,
-				app_slug: userOrgApp.slug,
-				client_id: userOrgApp.client_id,
-				client_secret: userOrgApp.client_secret,
-				webhook_secret: userOrgApp.webhook_secret,
-				private_key_pem: userOrgApp.pem,
-				private_key_base64: btoa(userOrgApp.pem),
-				
-				// Installation details
-				installations: {
-					user_org: {
-						organization: localStorage.getItem('glueops-org-name'),
-						installation_id: userOrgApp.user_installation_id,
-						management_url: `https://github.com/organizations/${localStorage.getItem('glueops-org-name')}/settings/apps/${userOrgApp.slug}`
-					},
-					glueops_rocks: {
-						organization: 'glueops-rocks',
-						installation_id: userOrgApp.glueops_installation_id,
-						management_url: `https://github.com/organizations/glueops-rocks/settings/apps/${userOrgApp.slug}`
-					}
-				},
-				
-				// Additional context
-				captain_domain: localStorage.getItem('glueops-captain-domain'),
-				user_organization: localStorage.getItem('glueops-org-name'),
-				
-				// Metadata
-				created_at: new Date().toISOString(),
-				app_owner: userOrgApp.owner
-			};
-
-			console.log('Sending cluster creation request with payload:', clusterPayload);
-
-			const response = await fetch('/api/create-cluster', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(clusterPayload)
-			});
-
-			if (response.ok) {
-				const result = await response.json();
-				console.log('Cluster creation response:', result);
-				alert(`Cluster creation initiated! Cluster ID: ${result.cluster_id}\nEstimated completion: ${result.details?.estimated_completion || 'Unknown'}`);
-			} else {
-				const error = await response.json();
-				console.error('Cluster creation failed:', error);
-				alert(`Failed to create cluster: ${error.error || 'Unknown error'}`);
-			}
-
-		} catch (error) {
-			console.error('Error during cluster creation:', error);
-			alert(`Error creating cluster: ${error instanceof Error ? error.message : 'Unknown error'}`);
-		}
-	}
-
 	async function convertManifest(code: string) {
 		try {
 			converting = true;
@@ -483,10 +407,6 @@
 				// First creation in glueops-rocks
 				userOrgApp = data;
 				sessionStorage.setItem('github-user-app-details', JSON.stringify(data));
-				appCredentials = data; // For backward compatibility
-			} else {
-				// For user flow, we shouldn't reach here as we reuse the same app
-				console.warn('Unexpected user flow in convertManifest - should reuse existing app');
 			}
 			
 			const orgName = currentFlow === 'user' ? 
@@ -511,11 +431,9 @@
 			console.groupEnd();
 
 			sessionStorage.setItem('github-app-converted', 'true');
-			// Keep legacy for compatibility
-			sessionStorage.setItem('github-app-details', JSON.stringify(data));
 			isInActiveFlow = true;
 			
-			// Immediately redirect to install flow with direct organization targeting
+			// Redirect to install flow with direct organization targeting after countdown
 			if (data.slug && orgName) {
 				// Use organization ID from the owner data if available for direct install
 				const orgId = data.owner?.id;
@@ -529,7 +447,16 @@
 					console.log('Organization ID not available, redirecting to selection page:', autoInstallUrl);
 				}
 				
-				window.location.href = autoInstallUrl;
+				// Start 10 second countdown before redirect
+				redirectMessage = `Redirecting to install in ${orgName}...`;
+				redirectCountdown = 10;
+				const countdownInterval = setInterval(() => {
+					redirectCountdown--;
+					if (redirectCountdown <= 0) {
+						clearInterval(countdownInterval);
+						window.location.href = autoInstallUrl;
+					}
+				}, 1000);
 			}
 		} catch (error) {
 			console.error('Error converting manifest code:', error);
@@ -592,7 +519,6 @@
 					localStorage.removeItem('glueops-captain-domain');
 					console.log('Storage cleared by user confirmation.');
 					showFinalDetails = false;
-					appCredentials = null;
 					userOrgApp = null;
 					bothAppsComplete = false;
 					currentAppFlow = 'user';
@@ -608,9 +534,15 @@
 		</section>
 	{/if}
 
-	{#if bothAppsComplete && userOrgApp}
+	{#if redirectCountdown > 0}
+		<section class="redirect-countdown-panel">
+			<h2>⏳ {redirectMessage}</h2>
+			<p class="countdown-text">Redirecting in <strong>{redirectCountdown}</strong> seconds...</p>
+			<div class="countdown-spinner"></div>
+		</section>
+	{:else if bothAppsComplete && userOrgApp}
 		<section class="credentials-panel">
-			<h2>🎉 GitHub App Created with Dual Installation!</h2>
+			<h2>🎉 GitHub Apps Created!</h2>
 			
 			<!-- App Credentials -->
 			<h3>📋 App Credentials</h3>
@@ -631,18 +563,6 @@
 					<strong>Client Secret:</strong>
 					<code class="secret">{userOrgApp.client_secret}</code>
 				</div>
-				<div class="credential-item">
-					<strong>Webhook Secret:</strong>
-					<code class="secret">{userOrgApp.webhook_secret}</code>
-				</div>
-				<div class="credential-item full-width">
-					<strong>Private Key (PEM):</strong>
-					<textarea readonly rows="8">{userOrgApp.pem}</textarea>
-				</div>
-				<div class="credential-item full-width">
-					<strong>Private Key (Base64):</strong>
-					<textarea readonly rows="4">{btoa(userOrgApp.pem)}</textarea>
-				</div>
 			</div>
 			
 			<!-- Installation Details -->
@@ -651,10 +571,6 @@
 				<div class="credential-item">
 					<strong>{localStorage.getItem('glueops-org-name')} Installation ID:</strong>
 					<code>{userOrgApp.user_installation_id || 'Pending...'}</code>
-				</div>
-				<div class="credential-item">
-					<strong>glueops-rocks Installation ID:</strong>
-					<code>{userOrgApp.glueops_installation_id || 'Pending...'}</code>
 				</div>
 				<div class="credential-item full-width">
 					<strong>Manage installation in {localStorage.getItem('glueops-org-name')}:</strong>
@@ -677,63 +593,8 @@
 			<p class="note">All credentials and installation details are also logged to the console. Store these securely!</p>
 			
 			<div class="action-buttons">
-				<button type="button" class="create-cluster-btn" on:click={createCluster} disabled={!userOrgApp.user_installation_id || !userOrgApp.glueops_installation_id}>
-					🚀 Create Cluster
-				</button>
 				<button type="button" class="cleanup-btn" on:click={() => showClearConfirm = true}>Clear Storage & Reset</button>
 			</div>
-		</section>
-	{:else if showFinalDetails && appCredentials && lastInstallationId}
-		<section class="credentials-panel">
-			<h2>🎉 GitHub App Created & Installed!</h2>
-			<div class="credential-grid">
-				<div class="credential-item">
-					<strong>Organization:</strong>
-					<code>{localStorage.getItem('glueops-org-name') ?? appCredentials.owner?.login ?? 'Unknown'}</code>
-				</div>
-				<div class="credential-item">
-					<strong>App ID:</strong>
-					<code>{appCredentials.id}</code>
-				</div>
-				<div class="credential-item">
-					<strong>Installation ID:</strong>
-					<code>{lastInstallationId}</code>
-				</div>
-				<div class="credential-item">
-					<strong>Client ID:</strong>
-					<code>{appCredentials.client_id}</code>
-				</div>
-				<div class="credential-item">
-					<strong>Client Secret:</strong>
-					<code class="secret">{appCredentials.client_secret}</code>
-				</div>
-				<div class="credential-item">
-					<strong>Webhook Secret:</strong>
-					<code class="secret">{appCredentials.webhook_secret}</code>
-				</div>
-				<div class="credential-item full-width">
-					<strong>Private Key (PEM):</strong>
-					<textarea readonly rows="8">{appCredentials.pem}</textarea>
-				</div>
-				<div class="credential-item full-width">
-					<strong>Private Key (Base64):</strong>
-					<textarea readonly rows="4">{btoa(appCredentials.pem)}</textarea>
-				</div>
-				<div class="credential-item full-width">
-					<strong>App Management:</strong>
-					<a href="https://github.com/organizations/{localStorage.getItem('glueops-org-name') ?? appCredentials.owner?.login}/settings/apps/{appCredentials.slug}" target="_blank" rel="noreferrer" class="app-link">
-						Manage {appCredentials.slug} in GitHub
-					</a>
-				</div>
-			</div>
-			<p class="note">All credentials are also logged to the console. Store these securely!</p>
-			<button type="button" class="cleanup-btn" on:click={() => showClearConfirm = true}>Clear Storage & Reset</button>
-		</section>
-	{:else if appCredentials && !lastInstallationId}
-		<section class="status-panel">
-			<p class="status-line"><strong>App created successfully!</strong> Redirecting to installation flow...</p>
-			<p class="status-line">App ID: <code>{appCredentials.id}</code></p>
-			<p class="status-line">If redirect doesn't happen, <a href={directInstallUrl} target="_blank" rel="noreferrer">click here to install</a></p>
 		</section>
 	{:else if installManagementUrl || directInstallUrl || lastInstallationId}
 		<section class="status-panel">
@@ -791,11 +652,13 @@
 	.credential-item .app-link:hover{background:#2ea043;text-decoration:none}
 	.note{margin:.5rem 0 0 0;font-size:.8rem;color:#7d8590;font-style:italic}
 	.action-buttons{display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap}
-	.create-cluster-btn{background:#7c3aed;color:#fff;padding:.7rem 1.2rem;border:none;border-radius:6px;font-size:.9rem;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:.5rem;width:auto;flex:1}
-	.create-cluster-btn:hover{background:#6d28d9}
-	.create-cluster-btn:disabled{background:#4c1d95;cursor:not-allowed;opacity:.6}
-	.cleanup-btn{margin-top:0;padding:.7rem 1.2rem;background:#8b949e;color:#fff;border:none;border-radius:6px;font-size:.9rem;cursor:pointer;width:auto;flex:0 0 auto}
-	.cleanup-btn:hover{background:#6e7681}
+	.cleanup-btn{margin-top:0;padding:1rem 2rem;background:#da3633;color:#fff;border:none;border-radius:6px;font-size:1.1rem;cursor:pointer;width:100%;font-weight:600}
+	.cleanup-btn:hover{background:#b62b28}
+	.redirect-countdown-panel{margin-top:1.5rem;background:#1c2128;border:2px solid #58a6ff;border-radius:8px;padding:2rem;text-align:center}
+	.redirect-countdown-panel h2{margin:0 0 1rem 0;color:#58a6ff;font-size:1.3rem}
+	.countdown-text{font-size:1.1rem;color:#e6edf3;margin:.5rem 0}
+	.countdown-text strong{font-size:1.5rem;color:#58a6ff}
+	.countdown-spinner{width:50px;height:50px;border:4px solid #30363d;border-top:4px solid #58a6ff;border-radius:50%;animation:spin 1s linear infinite;margin:1rem auto 0}
 	.active-flow-notice{margin-top:1.5rem;background:#1c2128;border:2px solid #d29922;border-radius:8px;padding:1.5rem;text-align:center}
 	.active-flow-notice h2{margin:0 0 .5rem 0;color:#d29922;font-size:1.2rem}
 	.active-flow-notice p{margin:.5rem 0 1rem 0;color:#9da7b1}
