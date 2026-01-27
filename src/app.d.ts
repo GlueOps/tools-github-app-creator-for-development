@@ -10,4 +10,12 @@ declare global {
 	}
 }
 
+// Version info injected at build time via Docker build args
+declare module '$env/static/public' {
+	export const PUBLIC_APP_VERSION: string;
+	export const PUBLIC_APP_BUILD_SHA_SHORT: string;
+	export const PUBLIC_APP_BUILD_SHA_LONG: string;
+	export const PUBLIC_APP_BUILD_DATE: string;
+}
+
 export {};

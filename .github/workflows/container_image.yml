@@ -46,6 +46,13 @@ jobs:
             type=ref,event=tag,prefix=
             type=sha,format=short,prefix=
             type=sha,format=long,prefix=
+
+      - name: Set build metadata
+        id: build-meta
+        run: |
+          echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+          echo "SHA_SHORT=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         id: build-and-push
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
@@ -57,3 +64,8 @@ jobs:
           provenance: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            PUBLIC_APP_VERSION=${{ github.ref_name }}
+            PUBLIC_APP_BUILD_SHA_SHORT=${{ steps.build-meta.outputs.SHA_SHORT }}
+            PUBLIC_APP_BUILD_SHA_LONG=${{ github.sha }}
+            PUBLIC_APP_BUILD_DATE=${{ steps.build-meta.outputs.BUILD_DATE }}

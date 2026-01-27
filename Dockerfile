@@ -13,6 +13,12 @@ RUN npm ci && npm cache clean --force
 # Add adapter-node for Docker builds
 RUN npm install @sveltejs/adapter-node
 
+# Build args for version info (defaults for local builds)
+ARG PUBLIC_APP_VERSION=UNKNOWN
+ARG PUBLIC_APP_BUILD_SHA_SHORT=UNKNOWN
+ARG PUBLIC_APP_BUILD_SHA_LONG=UNKNOWN
+ARG PUBLIC_APP_BUILD_DATE=UNKNOWN
+
 # Copy source code
 COPY . .
 
@@ -33,6 +39,12 @@ const config = {
 
 export default config;
 EOF
+
+# Set environment variables for SvelteKit build
+ENV PUBLIC_APP_VERSION=$PUBLIC_APP_VERSION
+ENV PUBLIC_APP_BUILD_SHA_SHORT=$PUBLIC_APP_BUILD_SHA_SHORT
+ENV PUBLIC_APP_BUILD_SHA_LONG=$PUBLIC_APP_BUILD_SHA_LONG
+ENV PUBLIC_APP_BUILD_DATE=$PUBLIC_APP_BUILD_DATE
 
 # Build the application
 RUN npm run build
