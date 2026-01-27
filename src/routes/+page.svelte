@@ -186,12 +186,12 @@
 						user_org: {
 							organization: localStorage.getItem('glueops-org-name'),
 							installation_id: userOrgApp.user_installation_id,
-							management_url: `https://github.com/organizations/${localStorage.getItem('glueops-org-name')}/settings/apps/${userOrgApp.slug}`
+							management_url: `https://github.com/organizations/${localStorage.getItem('glueops-org-name')}/settings/installations/${userOrgApp.user_installation_id}`
 						},
 						glueops_rocks: {
 							organization: 'glueops-rocks',
 							installation_id: userOrgApp.glueops_installation_id,
-							management_url: `https://github.com/organizations/glueops-rocks/settings/apps/${userOrgApp.slug}`
+							app_config_url: `https://github.com/organizations/glueops-rocks/settings/apps/${userOrgApp.slug}`
 						}
 					}
 				};
@@ -657,15 +657,19 @@
 					<code>{userOrgApp.glueops_installation_id || 'Pending...'}</code>
 				</div>
 				<div class="credential-item full-width">
-					<strong>Manage in {localStorage.getItem('glueops-org-name')}:</strong>
-					<a href="https://github.com/organizations/{localStorage.getItem('glueops-org-name')}/settings/apps/{userOrgApp.slug}" target="_blank" rel="noreferrer" class="app-link">
-						Manage {userOrgApp.slug} in {localStorage.getItem('glueops-org-name')}
-					</a>
+					<strong>Manage installation in {localStorage.getItem('glueops-org-name')}:</strong>
+					{#if userOrgApp.user_installation_id}
+						<a href="https://github.com/organizations/{localStorage.getItem('glueops-org-name')}/settings/installations/{userOrgApp.user_installation_id}" target="_blank" rel="noreferrer" class="app-link">
+							Manage installation in {localStorage.getItem('glueops-org-name')}
+						</a>
+					{:else}
+						<span class="pending">Pending...</span>
+					{/if}
 				</div>
 				<div class="credential-item full-width">
-					<strong>Manage in glueops-rocks:</strong>
+					<strong>App config in glueops-rocks:</strong>
 					<a href="https://github.com/organizations/glueops-rocks/settings/apps/{userOrgApp.slug}" target="_blank" rel="noreferrer" class="app-link">
-						Manage {userOrgApp.slug} in glueops-rocks
+						Manage {userOrgApp.slug} app config
 					</a>
 				</div>
 			</div>
