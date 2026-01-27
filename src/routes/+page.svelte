@@ -118,37 +118,39 @@
 				// Get the user's organization ID first, then start countdown
 				const appSlug = userOrgApp?.slug;
 				if (appSlug && userOrgName) {
-					try {
-						console.log(`Fetching ${userOrgName} organization ID...`);
-						const orgResponse = await fetch(`/api/get-org-id?org=${userOrgName}`);
-						
-						let targetUrl: string;
-						if (orgResponse.ok) {
-							const orgData = await orgResponse.json();
-							console.log(`Found ${userOrgName} org ID:`, orgData.id);
-							targetUrl = `https://github.com/apps/${appSlug}/installations/new/permissions?target_id=${orgData.id}&target_type=Organization`;
-						} else {
-							console.warn('Could not fetch org ID, falling back to selection page');
-							targetUrl = `https://github.com/apps/${appSlug}/installations/select_target`;
-						}
-						
-						// Start 10 second countdown before redirect
-						redirectMessage = `Redirecting to install in ${userOrgName}...`;
-						redirectCountdown = 10;
-						const countdownInterval = setInterval(() => {
-							redirectCountdown--;
-							if (redirectCountdown <= 0) {
-								clearInterval(countdownInterval);
-								console.log(`Redirecting to ${userOrgName} install:`, targetUrl);
-								window.location.href = targetUrl;
+					(async () => {
+						try {
+							console.log(`Fetching ${userOrgName} organization ID...`);
+							const orgResponse = await fetch(`/api/get-org-id?org=${userOrgName}`);
+							
+							let targetUrl: string;
+							if (orgResponse.ok) {
+								const orgData = await orgResponse.json();
+								console.log(`Found ${userOrgName} org ID:`, orgData.id);
+								targetUrl = `https://github.com/apps/${appSlug}/installations/new/permissions?target_id=${orgData.id}&target_type=Organization`;
+							} else {
+								console.warn('Could not fetch org ID, falling back to selection page');
+								targetUrl = `https://github.com/apps/${appSlug}/installations/select_target`;
 							}
-						}, 1000);
-					} catch (error) {
-						console.error('Error fetching org ID:', error);
-						console.log('Falling back to target selection page');
-						const fallbackUrl = `https://github.com/apps/${appSlug}/installations/select_target`;
-						window.location.href = fallbackUrl;
-					}
+							
+							// Start 10 second countdown before redirect
+							redirectMessage = `Redirecting to install in ${userOrgName}...`;
+							redirectCountdown = 10;
+							const countdownInterval = setInterval(() => {
+								redirectCountdown--;
+								if (redirectCountdown <= 0) {
+									clearInterval(countdownInterval);
+									console.log(`Redirecting to ${userOrgName} install:`, targetUrl);
+									window.location.href = targetUrl;
+								}
+							}, 1000);
+						} catch (error) {
+							console.error('Error fetching org ID:', error);
+							console.log('Falling back to target selection page');
+							const fallbackUrl = `https://github.com/apps/${appSlug}/installations/select_target`;
+							window.location.href = fallbackUrl;
+						}
+					})();
 				}
 				
 			} else {
@@ -647,7 +649,6 @@
 	.credential-item strong{font-size:.85rem;color:#7d8590;text-transform:uppercase;letter-spacing:.05em}
 	.credential-item code{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:.5rem;font-family:Menlo,Consolas,monospace;font-size:.8rem;word-break:break-all}
 	.credential-item code.secret{background:#2d1b1e;border-color:#8b949e}
-	.credential-item textarea{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:.5rem;font-family:Menlo,Consolas,monospace;font-size:.7rem;color:#e6edf3;resize:vertical;width:100%}
 	.credential-item .app-link{background:#238636;color:#fff;padding:.5rem 1rem;border-radius:6px;text-decoration:none;font-size:.85rem;font-weight:500;display:inline-block;margin-top:.25rem}
 	.credential-item .app-link:hover{background:#2ea043;text-decoration:none}
 	.note{margin:.5rem 0 0 0;font-size:.8rem;color:#7d8590;font-style:italic}
