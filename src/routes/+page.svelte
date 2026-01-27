@@ -565,7 +565,7 @@
 			</div>
 			<div class="form-group">
 				<label for="organizationInput">GitHub Organization *</label>
-				<input id="organizationInput" name="organization" bind:value={organizationName} placeholder="tenant organization (e.g. development-tenant-foobar) or cluster admins organization (e.g. glueops-rocks)" required />
+				<input id="organizationInput" name="organization" bind:value={organizationName} placeholder="tenant organization (e.g. development-tenant-foobar)" required />
 			</div>
 			<button type="submit" disabled={converting}>{converting ? 'Converting...' : 'Create via Manifest'}</button>
 		</form>
