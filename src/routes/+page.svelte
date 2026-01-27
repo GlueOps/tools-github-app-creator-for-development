@@ -23,6 +23,21 @@
 	// Redirect countdown state
 	let redirectCountdown = 0;
 	let redirectMessage = '';
+	
+	// Copy feedback state
+	let copiedField = '';
+	
+	async function copyToClipboard(value: string, fieldName: string) {
+		try {
+			await navigator.clipboard.writeText(value);
+			copiedField = fieldName;
+			setTimeout(() => {
+				if (copiedField === fieldName) copiedField = '';
+			}, 2000);
+		} catch (err) {
+			console.error('Failed to copy:', err);
+		}
+	}
 
 	// Check for active flow IMMEDIATELY to prevent form flashing
 	if (typeof window !== 'undefined') {
@@ -546,34 +561,77 @@
 		<section class="credentials-panel">
 			<h2>🎉 GitHub Apps Created!</h2>
 			
-			<!-- App Credentials -->
-			<h3>📋 App Credentials</h3>
+			<!-- Configuration Values -->
+			<h3>📋 Configuration Values</h3>
 			<div class="credential-grid">
 				<div class="credential-item">
-					<strong>App ID:</strong>
-					<code>{userOrgApp.id}</code>
+					<strong>github_oauth_app_client_id:</strong>
+					<div class="value-with-copy">
+						<code>{userOrgApp.client_id}</code>
+						<button type="button" class="copy-btn" on:click={() => copyToClipboard(userOrgApp.client_id, 'github_oauth_app_client_id')}>
+							{copiedField === 'github_oauth_app_client_id' ? '✓ Copied!' : '📋 Copy'}
+						</button>
+					</div>
 				</div>
 				<div class="credential-item">
-					<strong>App Slug:</strong>
-					<code>{userOrgApp.slug}</code>
+					<strong>github_oauth_app_client_secret:</strong>
+					<div class="value-with-copy">
+						<code class="secret">{userOrgApp.client_secret}</code>
+						<button type="button" class="copy-btn" on:click={() => copyToClipboard(userOrgApp.client_secret, 'github_oauth_app_client_secret')}>
+							{copiedField === 'github_oauth_app_client_secret' ? '✓ Copied!' : '📋 Copy'}
+						</button>
+					</div>
 				</div>
 				<div class="credential-item">
-					<strong>Client ID:</strong>
-					<code>{userOrgApp.client_id}</code>
+					<strong>github_tenant_app_id:</strong>
+					<div class="value-with-copy">
+						<code>{userOrgApp.id}</code>
+						<button type="button" class="copy-btn" on:click={() => copyToClipboard(String(userOrgApp.id), 'github_tenant_app_id')}>
+							{copiedField === 'github_tenant_app_id' ? '✓ Copied!' : '📋 Copy'}
+						</button>
+					</div>
 				</div>
 				<div class="credential-item">
-					<strong>Client Secret:</strong>
-					<code class="secret">{userOrgApp.client_secret}</code>
+					<strong>github_tenant_app_installation_id:</strong>
+					<div class="value-with-copy">
+						<code>{userOrgApp.user_installation_id || 'Pending...'}</code>
+						<button type="button" class="copy-btn" on:click={() => copyToClipboard(String(userOrgApp.user_installation_id), 'github_tenant_app_installation_id')} disabled={!userOrgApp.user_installation_id}>
+							{copiedField === 'github_tenant_app_installation_id' ? '✓ Copied!' : '📋 Copy'}
+						</button>
+					</div>
+				</div>
+				<div class="credential-item">
+					<strong>admin_github_org_name:</strong>
+					<div class="value-with-copy">
+						<code>glueops-rocks</code>
+						<button type="button" class="copy-btn" on:click={() => copyToClipboard('glueops-rocks', 'admin_github_org_name')}>
+							{copiedField === 'admin_github_org_name' ? '✓ Copied!' : '📋 Copy'}
+						</button>
+					</div>
+				</div>
+				<div class="credential-item">
+					<strong>tenant_github_org_name:</strong>
+					<div class="value-with-copy">
+						<code>{localStorage.getItem('glueops-org-name')}</code>
+						<button type="button" class="copy-btn" on:click={() => copyToClipboard(localStorage.getItem('glueops-org-name') || '', 'tenant_github_org_name')}>
+							{copiedField === 'tenant_github_org_name' ? '✓ Copied!' : '📋 Copy'}
+						</button>
+					</div>
+				</div>
+				<div class="credential-item full-width">
+					<strong>github_tenant_app_b64enc_private_key:</strong>
+					<div class="value-with-copy">
+						<textarea readonly rows="4">{btoa(userOrgApp.pem)}</textarea>
+						<button type="button" class="copy-btn" on:click={() => copyToClipboard(btoa(userOrgApp.pem), 'github_tenant_app_b64enc_private_key')}>
+							{copiedField === 'github_tenant_app_b64enc_private_key' ? '✓ Copied!' : '📋 Copy'}
+						</button>
+					</div>
 				</div>
 			</div>
 			
-			<!-- Installation Details -->
-			<h3>🏢 Installation Details</h3>
+			<!-- Management Links -->
+			<h3>🔗 Management Links</h3>
 			<div class="credential-grid">
-				<div class="credential-item">
-					<strong>{localStorage.getItem('glueops-org-name')} Installation ID:</strong>
-					<code>{userOrgApp.user_installation_id || 'Pending...'}</code>
-				</div>
 				<div class="credential-item full-width">
 					<strong>Manage installation in {localStorage.getItem('glueops-org-name')}:</strong>
 					{#if userOrgApp.user_installation_id}
@@ -649,8 +707,14 @@
 	.credential-item strong{font-size:.85rem;color:#7d8590;text-transform:uppercase;letter-spacing:.05em}
 	.credential-item code{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:.5rem;font-family:Menlo,Consolas,monospace;font-size:.8rem;word-break:break-all}
 	.credential-item code.secret{background:#2d1b1e;border-color:#8b949e}
+	.credential-item textarea{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:.5rem;font-family:Menlo,Consolas,monospace;font-size:.7rem;color:#e6edf3;resize:vertical;width:100%}
 	.credential-item .app-link{background:#238636;color:#fff;padding:.5rem 1rem;border-radius:6px;text-decoration:none;font-size:.85rem;font-weight:500;display:inline-block;margin-top:.25rem}
 	.credential-item .app-link:hover{background:#2ea043;text-decoration:none}
+	.value-with-copy{display:flex;align-items:flex-start;gap:.5rem}
+	.value-with-copy code,.value-with-copy textarea{flex:1}
+	.copy-btn{padding:.4rem .6rem;background:#238636;color:#fff;border:none;border-radius:4px;font-size:.75rem;cursor:pointer;white-space:nowrap;flex-shrink:0}
+	.copy-btn:hover{background:#2ea043}
+	.copy-btn:disabled{background:#4c5157;cursor:not-allowed;opacity:.6}
 	.note{margin:.5rem 0 0 0;font-size:.8rem;color:#7d8590;font-style:italic}
 	.action-buttons{display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap}
 	.cleanup-btn{margin-top:0;padding:1rem 2rem;background:#da3633;color:#fff;border:none;border-radius:6px;font-size:1.1rem;cursor:pointer;width:100%;font-weight:600}
