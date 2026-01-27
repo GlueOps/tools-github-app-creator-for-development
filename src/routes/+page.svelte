@@ -710,9 +710,10 @@
 	.credential-item textarea{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:.5rem;font-family:Menlo,Consolas,monospace;font-size:.7rem;color:#e6edf3;resize:vertical;width:100%}
 	.credential-item .app-link{background:#238636;color:#fff;padding:.5rem 1rem;border-radius:6px;text-decoration:none;font-size:.85rem;font-weight:500;display:inline-block;margin-top:.25rem}
 	.credential-item .app-link:hover{background:#2ea043;text-decoration:none}
-	.value-with-copy{display:flex;align-items:flex-start;gap:.5rem}
-	.value-with-copy code,.value-with-copy textarea{flex:1}
-	.copy-btn{padding:.4rem .6rem;background:#238636;color:#fff;border:none;border-radius:4px;font-size:.75rem;cursor:pointer;white-space:nowrap;flex-shrink:0}
+	.value-with-copy{display:flex;align-items:center;gap:.5rem;width:100%}
+	.value-with-copy code{flex:1;min-width:0;display:block}
+	.value-with-copy textarea{flex:1;min-width:0}
+	.copy-btn{padding:.4rem .6rem;background:#238636;color:#fff;border:none;border-radius:4px;font-size:.75rem;cursor:pointer;white-space:nowrap;flex-shrink:0;width:auto;min-width:70px}
 	.copy-btn:hover{background:#2ea043}
 	.copy-btn:disabled{background:#4c5157;cursor:not-allowed;opacity:.6}
 	.note{margin:.5rem 0 0 0;font-size:.8rem;color:#7d8590;font-style:italic}
