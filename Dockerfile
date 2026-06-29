@@ -1,5 +1,5 @@
 # Use Node.js 24 LTS version
-FROM node:24-alpine@sha256:931d7d57f8c1fd0e2179dbff7cc7da4c9dd100998bc2b32afc85142d8efbc213 AS builder
+FROM node:24-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS builder
 
 # Set working directory
 WORKDIR /app
@@ -31,7 +31,7 @@ import adapter from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 const config = {
-	preprocess: vitePreprocess(),
+	preprocess: vitePreprocess({ script: true }),
 	kit: {
 		adapter: adapter()
 	}
@@ -50,7 +50,7 @@ ENV PUBLIC_APP_BUILD_DATE=$PUBLIC_APP_BUILD_DATE
 RUN npm run build
 
 # Production stage
-FROM node:24-alpine@sha256:931d7d57f8c1fd0e2179dbff7cc7da4c9dd100998bc2b32afc85142d8efbc213 AS runner
+FROM node:24-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS runner
 
 # Set working directory
 WORKDIR /app
