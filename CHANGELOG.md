@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.1.0...v0.2.0) (2026-06-29)
+
+
+### Features
+
+* update Vite to 8.1.0 ([#190](https://github.com/GlueOps/tools-github-app-creator-for-development/issues/190)) ([15dad14](https://github.com/GlueOps/tools-github-app-creator-for-development/commit/15dad1404abe15891d0fbf4d05348781b3478fbc))
+
 ## [0.1.0](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.0.12...v0.1.0) (2026-06-29)
 
 
