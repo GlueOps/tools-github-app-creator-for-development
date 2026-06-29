@@ -15,4 +15,6 @@ jobs:
     steps:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Use a PAT/App token (not GITHUB_TOKEN) so the release tag it pushes
+          # triggers container_image.yml, and release PRs run required checks.
+          token: ${{ secrets.CREATE_REPO_RELEASE }}
