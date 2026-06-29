@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.2.0...v0.2.1) (2026-06-29)
+
+
+### Bug Fixes
+
+* publish container image on release ([#192](https://github.com/GlueOps/tools-github-app-creator-for-development/issues/192)) ([a4f3ff0](https://github.com/GlueOps/tools-github-app-creator-for-development/commit/a4f3ff0eeec95042bd73ba8c39105ead5069a530))
+* publish container image on release via GitHub App token ([#193](https://github.com/GlueOps/tools-github-app-creator-for-development/issues/193)) ([d24b811](https://github.com/GlueOps/tools-github-app-creator-for-development/commit/d24b8111473cbaea342182f369ac86a463938200))
+
 ## [0.2.0](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.1.0...v0.2.0) (2026-06-29)
 
 
