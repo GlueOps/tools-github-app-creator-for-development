@@ -15,20 +15,20 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
 	},
 	"devDependencies": {
-		"@skeletonlabs/skeleton": "4.11.0",
+		"@skeletonlabs/skeleton": "4.15.2",
 		"@skeletonlabs/tw-plugin": "0.4.1",
 		"@sveltejs/adapter-auto": "7.0.0",
-		"@sveltejs/kit": "2.50.1",
+		"@sveltejs/kit": "2.60.1",
 		"@sveltejs/vite-plugin-svelte": "6.2.4",
 		"@tailwindcss/forms": "0.5.11",
 		"@tailwindcss/typography": "0.5.19",
-		"autoprefixer": "10.4.23",
-		"devalue": "5.6.2",
-		"svelte": "5.48.3",
-		"svelte-check": "4.3.5",
-		"tailwindcss": "4.1.18",
-		"typescript": "5.9.3",
-		"vite": "7.3.1"
+		"autoprefixer": "10.5.0",
+		"devalue": "5.8.1",
+		"svelte": "5.55.7",
+		"svelte-check": "4.4.8",
+		"tailwindcss": "4.3.0",
+		"typescript": "6.0.3",
+		"vite": "7.3.5"
 	},
 	"dependencies": {
 		"@octokit/auth-app": "^8.1.2",
