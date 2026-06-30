@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.2](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.2.1...v0.2.2) (2026-06-30)
+
+
+### Miscellaneous Chores
+
+* rename release-please.yml to .yaml ([#195](https://github.com/GlueOps/tools-github-app-creator-for-development/issues/195)) ([740d540](https://github.com/GlueOps/tools-github-app-creator-for-development/commit/740d540008698dd4ee7f60ab4d26eac9872b7410))
+
+
+### Continuous Integration
+
+* bring release-please config up to GlueOps convention ([#197](https://github.com/GlueOps/tools-github-app-creator-for-development/issues/197)) ([2522e6a](https://github.com/GlueOps/tools-github-app-creator-for-development/commit/2522e6a213ddfb09cd1156e5a13ae29a9c7d2b45))
+
 ## [0.2.1](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.2.0...v0.2.1) (2026-06-29)
 
 
