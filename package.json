@@ -22,7 +22,7 @@
 		"@sveltejs/vite-plugin-svelte": "7.1.2",
 		"@tailwindcss/forms": "0.5.11",
 		"@tailwindcss/typography": "0.5.19",
-		"autoprefixer": "10.5.0",
+		"autoprefixer": "10.5.4",
 		"devalue": "5.8.1",
 		"svelte": "5.56.0",
 		"svelte-check": "4.4.8",
