@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.2](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.4.1...v0.4.2) (2026-08-27)
+
+
+### Code Refactoring
+
+* route all browser storage through one module ([#246](https://github.com/GlueOps/tools-github-app-creator-for-development/issues/246)) ([1020897](https://github.com/GlueOps/tools-github-app-creator-for-development/commit/1020897b84924a37fcf36661c365f2714e0e16fc))
+
+
+### Continuous Integration
+
+* type-check and build on pull requests ([#245](https://github.com/GlueOps/tools-github-app-creator-for-development/issues/245)) ([21bd980](https://github.com/GlueOps/tools-github-app-creator-for-development/commit/21bd98085c5d8e66daaeeca2ed3a74995a1a94d4))
+
 ## [0.4.1](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.4.0...v0.4.1) (2026-08-27)
 
 
