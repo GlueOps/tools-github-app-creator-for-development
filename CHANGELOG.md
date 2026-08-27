@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.4.0...v0.4.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* scope captain domain and tenant org to the tab, not the browser ([#243](https://github.com/GlueOps/tools-github-app-creator-for-development/issues/243)) ([eed7d33](https://github.com/GlueOps/tools-github-app-creator-for-development/commit/eed7d33be74b8749cb3a0c4d218867aae11eaabc))
+
 ## [0.4.0](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.3.0...v0.4.0) (2026-08-27)
 
 
