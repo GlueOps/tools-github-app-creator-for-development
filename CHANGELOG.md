@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.2.2...v0.3.0) (2026-08-27)
+
+
+### Features
+
+* **deps:** consolidate Renovate dependency updates ([#238](https://github.com/GlueOps/tools-github-app-creator-for-development/issues/238)) ([a2c06ab](https://github.com/GlueOps/tools-github-app-creator-for-development/commit/a2c06abf3251e23e7f4ad89cb92751cf8d016307))
+
+
+### Miscellaneous Chores
+
+* add Apache-2.0 LICENSE ([#221](https://github.com/GlueOps/tools-github-app-creator-for-development/issues/221)) ([6ca2485](https://github.com/GlueOps/tools-github-app-creator-for-development/commit/6ca2485b7fa0d74972711e980e5a6c891dcfe677))
+
 ## [0.2.2](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.2.1...v0.2.2) (2026-06-30)
 
 
