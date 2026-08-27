@@ -68,11 +68,11 @@
 	}
 
 	$: tenantOrgName =
-		(typeof localStorage !== 'undefined' && localStorage.getItem('glueops-org-name')) || organizationName || '';
+		(typeof sessionStorage !== 'undefined' && sessionStorage.getItem('glueops-org-name')) || organizationName || '';
 
 	$: if (bothAppsComplete && userOrgApp && !hclEnvironmentName) {
 		const storedDomain =
-			(typeof localStorage !== 'undefined' && localStorage.getItem('glueops-captain-domain')) || captainDomain;
+			(typeof sessionStorage !== 'undefined' && sessionStorage.getItem('glueops-captain-domain')) || captainDomain;
 		hclEnvironmentName = environmentNameFromDomain(storedDomain);
 	}
 
@@ -134,6 +134,17 @@
 
 	onMount(() => {
 		currentOrigin = window.location.origin;
+
+		// These two keys used to live in localStorage, where they outlived the tab
+		// and shadowed freshly typed values on the next run. Drop any leftovers.
+		// Guarded: localStorage access throws outright when site data is blocked,
+		// and this runs on every first paint.
+		try {
+			localStorage.removeItem('glueops-org-name');
+			localStorage.removeItem('glueops-captain-domain');
+		} catch (e) {
+			console.warn('Could not purge legacy localStorage keys:', e);
+		}
 		
 		// Store the current origin in session storage for callbacks
 		sessionStorage.setItem('github-app-creator-origin', currentOrigin);
@@ -183,7 +194,7 @@
 				console.log('GlueOps organization installation complete');
 				
 				// Now install the same app in user's organization
-				const userOrgName = localStorage.getItem('glueops-org-name');
+				const userOrgName = sessionStorage.getItem('glueops-org-name');
 				console.log(`Redirecting to install in user organization: ${userOrgName}...`);
 				sessionStorage.setItem('github-app-flow', 'user');
 				
@@ -251,9 +262,9 @@
 					app_slug: userOrgApp.slug,
 					installations: {
 						user_org: {
-							organization: localStorage.getItem('glueops-org-name'),
+							organization: sessionStorage.getItem('glueops-org-name'),
 							installation_id: userOrgApp.user_installation_id,
-							management_url: `https://github.com/organizations/${localStorage.getItem('glueops-org-name')}/settings/installations/${userOrgApp.user_installation_id}`
+							management_url: `https://github.com/organizations/${sessionStorage.getItem('glueops-org-name')}/settings/installations/${userOrgApp.user_installation_id}`
 						},
 						glueops_rocks: {
 							organization: 'glueops-rocks',
@@ -276,8 +287,8 @@
 		if (code) {
 			console.group('GitHub App Manifest Flow');
 			console.log('Returned from GitHub with manifest code:', code);
-			const orgName = localStorage.getItem('glueops-org-name');
-			const domain = localStorage.getItem('glueops-captain-domain');
+			const orgName = sessionStorage.getItem('glueops-org-name');
+			const domain = sessionStorage.getItem('glueops-captain-domain');
 			console.log('Stored organization:', orgName);
 			console.log('Stored captain domain:', domain);
 
@@ -296,29 +307,29 @@
 		isInitialized = true;
 	});
 
-	function buildManifest(targetOrg?: string) {
+	// The captain domain is passed in rather than read back out of storage: at
+	// creation time the value the user just typed is the only source of truth,
+	// and reading a stored copy here is what let a previous run's domain shadow it.
+	function buildManifest(targetOrg: string, domain: string) {
 		const randomSuffix = Math.random().toString(36).substring(2, 8);
 		const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
 		const orgPrefix = targetOrg === 'glueops-rocks' ? 'glueops-rocks' : 'glueops';
 		const appName = `${orgPrefix}-${today}-${randomSuffix}`;
-		
-		// Use stored captain domain to ensure consistency
-		const storedDomain = localStorage.getItem('glueops-captain-domain') || captainDomain;
-		
-		console.log('Building manifest with domain:', storedDomain, 'for org:', targetOrg || 'user');
+
+		console.log('Building manifest with domain:', domain, 'for org:', targetOrg);
 
 		return {
 			...manifestTemplate,
 			name: appName,
-			url: `https://dex.${storedDomain}`,
+			url: `https://dex.${domain}`,
 			hook_attributes: {
-				url: `https://${storedDomain}/webhook`,
+				url: `https://${domain}/webhook`,
 				active: false
 			},
 			redirect_url: currentOrigin,
 			callback_urls: [
 				`${currentOrigin}/api/auth/callback`,
-				`https://dex.${storedDomain}/callback`
+				`https://dex.${domain}/callback`
 			],
 			setup_url: currentOrigin
 		};
@@ -363,6 +374,9 @@
 	}
 
 	function startCreation() {
+		captainDomain = captainDomain.trim();
+		organizationName = organizationName.trim();
+
 		if (!captainDomain || !organizationName) {
 			console.warn('Captain domain and organization are required to start manifest flow.');
 			return;
@@ -374,16 +388,18 @@
 	}
 	
 	function createAppForOrganization(orgName: string, flowType: 'user' | 'glueops') {
-		const manifestObj = buildManifest(orgName);
 		isInActiveFlow = true;
 		console.group(`GitHub App Manifest Flow - ${flowType === 'user' ? 'User Org' : 'GlueOps'}`);
-		console.log('Generated manifest JSON:', manifestObj);
 
-		// Always store the user's organization and captain domain for dual installation flow
-		// We need this info regardless of which organization we're creating the app for first
-		localStorage.setItem('glueops-org-name', organizationName);
-		localStorage.setItem('glueops-captain-domain', captainDomain);
+		// Persist the tenant facts BEFORE anything reads them back: every later
+		// step (install targeting, the credentials panel, the generated Terraform
+		// block) recovers them from storage after the redirect round-trip.
+		sessionStorage.setItem('glueops-org-name', organizationName);
+		sessionStorage.setItem('glueops-captain-domain', captainDomain);
 		console.log('Stored user organization for dual installation:', organizationName);
+
+		const manifestObj = buildManifest(orgName, captainDomain);
+		console.log('Generated manifest JSON:', manifestObj);
 		
 		sessionStorage.setItem('github-app-phase', 'manifest-generated');
 		sessionStorage.setItem('github-app-flow', flowType);
@@ -484,7 +500,7 @@
 			}
 			
 			const orgName = currentFlow === 'user' ? 
-				(localStorage.getItem('glueops-org-name') ?? data.owner?.login) :
+				(sessionStorage.getItem('glueops-org-name') ?? data.owner?.login) :
 				'glueops-rocks';
 				
 			if (data.slug && orgName) {
@@ -589,8 +605,6 @@
 			<div class="button-group">
 				<button type="button" class="confirm-btn" on:click={() => {
 					sessionStorage.clear();
-					localStorage.removeItem('glueops-org-name');
-					localStorage.removeItem('glueops-captain-domain');
 					console.log('Storage cleared by user confirmation.');
 					showFinalDetails = false;
 					userOrgApp = null;
@@ -674,8 +688,8 @@
 				<div class="credential-item">
 					<strong>tenant_github_org_name:</strong>
 					<div class="value-with-copy">
-						<code>{localStorage.getItem('glueops-org-name')}</code>
-						<button type="button" class="copy-btn" on:click={() => copyToClipboard(localStorage.getItem('glueops-org-name') || '', 'tenant_github_org_name')}>
+						<code>{tenantOrgName}</code>
+						<button type="button" class="copy-btn" on:click={() => copyToClipboard(tenantOrgName, 'tenant_github_org_name')}>
 							{copiedField === 'tenant_github_org_name' ? '✓ Copied!' : '📋 Copy'}
 						</button>
 					</div>
@@ -738,10 +752,10 @@
 			<h3>🔗 Management Links</h3>
 			<div class="credential-grid">
 				<div class="credential-item full-width">
-					<strong>Manage installation in {localStorage.getItem('glueops-org-name')}:</strong>
+					<strong>Manage installation in {tenantOrgName}:</strong>
 					{#if userOrgApp.user_installation_id}
-						<a href="https://github.com/organizations/{localStorage.getItem('glueops-org-name')}/settings/installations/{userOrgApp.user_installation_id}" target="_blank" rel="noreferrer" class="app-link">
-							Manage installation in {localStorage.getItem('glueops-org-name')}
+						<a href="https://github.com/organizations/{tenantOrgName}/settings/installations/{userOrgApp.user_installation_id}" target="_blank" rel="noreferrer" class="app-link">
+							Manage installation in {tenantOrgName}
 						</a>
 					{:else}
 						<span class="pending">Pending...</span>
