@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.3.0...v0.4.0) (2026-08-27)
+
+
+### Features
+
+* render copy/paste-ready captain-cluster Terraform module block ([#239](https://github.com/GlueOps/tools-github-app-creator-for-development/issues/239)) ([708345b](https://github.com/GlueOps/tools-github-app-creator-for-development/commit/708345bce66749af24466854bff02847489b4582))
+
 ## [0.3.0](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.2.2...v0.3.0) (2026-08-27)
 
 
