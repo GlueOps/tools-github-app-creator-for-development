@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import manifestTemplate from '$lib/manifest-template.json';
 	import { buildClusterModuleHcl, environmentNameFromDomain, ADMIN_GITHUB_ORG } from '$lib/hcl';
+	import * as flow from '$lib/flow-state';
 
 	let captainDomain = '';
 	let organizationName = '';
@@ -68,11 +69,10 @@
 	}
 
 	$: tenantOrgName =
-		(typeof sessionStorage !== 'undefined' && sessionStorage.getItem('glueops-org-name')) || organizationName || '';
+		flow.read('tenantOrgName') || organizationName || '';
 
 	$: if (bothAppsComplete && userOrgApp && !hclEnvironmentName) {
-		const storedDomain =
-			(typeof sessionStorage !== 'undefined' && sessionStorage.getItem('glueops-captain-domain')) || captainDomain;
+		const storedDomain = flow.read('captainDomain') || captainDomain;
 		hclEnvironmentName = environmentNameFromDomain(storedDomain);
 	}
 
@@ -98,10 +98,10 @@
 
 	// Check for active flow IMMEDIATELY to prevent form flashing
 	if (typeof window !== 'undefined') {
-		const storedPhase = sessionStorage.getItem('github-app-phase');
-		const storedUserApp = sessionStorage.getItem('github-user-app-details');
-		const storedInstallation = sessionStorage.getItem('github-installation-id');
-		const storedFlow = sessionStorage.getItem('github-app-flow');
+		const storedPhase = flow.read('phase');
+		const storedUserApp: any = flow.readJson('app');
+		const storedInstallation = flow.read('installationId');
+		const storedFlow = flow.read('flow');
 		
 		if (storedPhase || storedUserApp || storedInstallation) {
 			isInActiveFlow = true;
@@ -115,11 +115,7 @@
 			currentAppFlow = storedFlow;
 		}
 		if (storedUserApp) {
-			try {
-				userOrgApp = JSON.parse(storedUserApp);
-			} catch (e) {
-				console.warn('Failed to parse stored user app details:', e);
-			}
+			userOrgApp = storedUserApp;
 		}
 		if (storedInstallation) {
 			lastInstallationId = storedInstallation;
@@ -135,19 +131,10 @@
 	onMount(() => {
 		currentOrigin = window.location.origin;
 
-		// These two keys used to live in localStorage, where they outlived the tab
-		// and shadowed freshly typed values on the next run. Drop any leftovers.
-		// Guarded: localStorage access throws outright when site data is blocked,
-		// and this runs on every first paint.
-		try {
-			localStorage.removeItem('glueops-org-name');
-			localStorage.removeItem('glueops-captain-domain');
-		} catch (e) {
-			console.warn('Could not purge legacy localStorage keys:', e);
-		}
+		flow.purgeLegacyLocalStorage();
 		
 		// Store the current origin in session storage for callbacks
-		sessionStorage.setItem('github-app-creator-origin', currentOrigin);
+		flow.write('origin', currentOrigin);
 		
 		const params = new URLSearchParams(window.location.search);
 		const code = params.get('code');
@@ -155,10 +142,10 @@
 		const setupAction = params.get('setup_action');
 		const error = params.get('error');
 		const errorDetails = params.get('details');
-		const storedPhase = sessionStorage.getItem('github-app-phase');
-		const storedInstallUrl = sessionStorage.getItem('github-app-install-url');
-		const storedSlug = sessionStorage.getItem('github-app-slug');
-		const storedInstallation = sessionStorage.getItem('github-installation-id');
+		const storedPhase = flow.read('phase');
+		const storedInstallUrl = flow.read('installUrl');
+		const storedSlug = flow.read('appSlug');
+		const storedInstallation = flow.read('installationId');
 
 		// Handle errors
 		if (error) {
@@ -181,7 +168,7 @@
 			console.log('Setup action:', setupAction ?? '(none)');
 			console.log('Installation ID:', installationId);
 			
-			const currentFlow = sessionStorage.getItem('github-app-flow') || 'user';
+			const currentFlow = flow.read('flow') || 'user';
 			console.log('Current installation flow:', currentFlow);
 			
 			// Store installation ID for the current organization
@@ -189,14 +176,14 @@
 				// First installation - glueops-rocks organization
 				if (userOrgApp) {
 					userOrgApp.glueops_installation_id = installationId;
-					sessionStorage.setItem('github-user-app-details', JSON.stringify(userOrgApp));
+					flow.writeJson('app', userOrgApp);
 				}
 				console.log('GlueOps organization installation complete');
 				
 				// Now install the same app in user's organization
-				const userOrgName = sessionStorage.getItem('glueops-org-name');
+				const userOrgName = flow.read('tenantOrgName');
 				console.log(`Redirecting to install in user organization: ${userOrgName}...`);
-				sessionStorage.setItem('github-app-flow', 'user');
+				flow.write('flow', 'user');
 				
 				// Get the user's organization ID first, then start countdown
 				const appSlug = userOrgApp?.slug;
@@ -240,14 +227,14 @@
 				// Second installation - user's organization
 				if (userOrgApp) {
 					userOrgApp.user_installation_id = installationId;
-					sessionStorage.setItem('github-user-app-details', JSON.stringify(userOrgApp));
+					flow.writeJson('app', userOrgApp);
 				}
 				console.log('User organization installation complete');
 				
 				// Both installations are now complete
 				bothAppsComplete = true;
 				showFinalDetails = true;
-				sessionStorage.setItem('github-app-phase', 'all-complete');
+				flow.write('phase', 'all-complete');
 				currentPhase = 'all-complete';
 				
 				// Generate final summary for single app with dual installations
@@ -262,9 +249,9 @@
 					app_slug: userOrgApp.slug,
 					installations: {
 						user_org: {
-							organization: sessionStorage.getItem('glueops-org-name'),
+							organization: flow.read('tenantOrgName'),
 							installation_id: userOrgApp.user_installation_id,
-							management_url: `https://github.com/organizations/${sessionStorage.getItem('glueops-org-name')}/settings/installations/${userOrgApp.user_installation_id}`
+							management_url: `https://github.com/organizations/${flow.read('tenantOrgName')}/settings/installations/${userOrgApp.user_installation_id}`
 						},
 						glueops_rocks: {
 							organization: 'glueops-rocks',
@@ -277,7 +264,7 @@
 				console.log('=== END DUAL INSTALLATION SUMMARY ===');
 			}
 			
-			sessionStorage.setItem('github-installation-id', installationId);
+			flow.write('installationId', installationId);
 			lastInstallationId = installationId;
 			
 			console.groupEnd();
@@ -287,12 +274,12 @@
 		if (code) {
 			console.group('GitHub App Manifest Flow');
 			console.log('Returned from GitHub with manifest code:', code);
-			const orgName = sessionStorage.getItem('glueops-org-name');
-			const domain = sessionStorage.getItem('glueops-captain-domain');
+			const orgName = flow.read('tenantOrgName');
+			const domain = flow.read('captainDomain');
 			console.log('Stored organization:', orgName);
 			console.log('Stored captain domain:', domain);
 
-			if (!sessionStorage.getItem('github-app-converted')) {
+			if (!flow.read('converted')) {
 				convertManifest(code);
 			} else {
 				console.log('Conversion already performed in this session; skipping duplicate call.');
@@ -339,8 +326,8 @@
 		console.log('Attempting POST form submission of manifest to GitHub...');
 		
 		// Store which organization this is for
-		sessionStorage.setItem('github-app-flow', currentAppFlow);
-		sessionStorage.setItem('github-target-org', org);
+		flow.write('flow', currentAppFlow);
+		flow.write('targetOrg', org);
 
 		const form = document.createElement('form');
 		form.method = 'POST';
@@ -394,39 +381,35 @@
 		// Persist the tenant facts BEFORE anything reads them back: every later
 		// step (install targeting, the credentials panel, the generated Terraform
 		// block) recovers them from storage after the redirect round-trip.
-		sessionStorage.setItem('glueops-org-name', organizationName);
-		sessionStorage.setItem('glueops-captain-domain', captainDomain);
+		flow.write('tenantOrgName', organizationName);
+		flow.write('captainDomain', captainDomain);
 		console.log('Stored user organization for dual installation:', organizationName);
 
 		const manifestObj = buildManifest(orgName, captainDomain);
 		console.log('Generated manifest JSON:', manifestObj);
 		
-		sessionStorage.setItem('github-app-phase', 'manifest-generated');
-		sessionStorage.setItem('github-app-flow', flowType);
+		flow.write('phase', 'manifest-generated');
+		flow.write('flow', flowType);
 		currentPhase = 'manifest-generated';
 		currentAppFlow = flowType;
 		
-		// Clear previous app data for this flow
-		if (flowType === 'user') {
-			sessionStorage.removeItem('github-user-app-details');
-		} else {
-			sessionStorage.removeItem('github-glueops-app-details');
-		}
+		// Clear the previous run's app details
+		flow.remove('app');
 		
-		sessionStorage.removeItem('github-app-converted');
-		sessionStorage.removeItem('github-installation-id');
-		sessionStorage.removeItem('github-app-install-url');
-		sessionStorage.removeItem('github-app-slug');
-		sessionStorage.setItem('github-app-last-manifest', JSON.stringify(manifestObj));
+		flow.remove('converted');
+		flow.remove('installationId');
+		flow.remove('installUrl');
+		flow.remove('appSlug');
+		flow.writeJson('lastManifest', manifestObj);
 
 		const manifestJson = JSON.stringify(manifestObj);
 		const postForm = submitManifestViaPost(manifestJson, orgName);
-		sessionStorage.setItem('github-app-phase', 'manifest-posted');
+		flow.write('phase', 'manifest-posted');
 		currentPhase = 'manifest-posted';
 
 		const fallbackTimeout = window.setTimeout(() => {
 			console.warn('POST submission did not navigate quickly; falling back to GET query parameter approach.');
-			sessionStorage.setItem('github-app-phase', 'manifest-get-fallback');
+			flow.write('phase', 'manifest-get-fallback');
 			currentPhase = 'manifest-get-fallback';
 			
 			// Include state parameter in fallback approach as well
@@ -450,7 +433,7 @@
 		document.addEventListener('visibilitychange', () => {
 			if (document.visibilityState === 'hidden') {
 				console.log('Page becoming hidden; assuming navigation succeeded.');
-				sessionStorage.setItem('github-app-phase', 'navigated-to-github');
+				flow.write('phase', 'navigated-to-github');
 				currentPhase = 'navigated-to-github';
 				clearFallback();
 			}
@@ -477,9 +460,9 @@
 			}
 
 			const data = await resp.json();
-			const currentFlow = sessionStorage.getItem('github-app-flow') || 'user';
+			const currentFlow = flow.read('flow') || 'user';
 			
-			sessionStorage.setItem('github-app-phase', 'converted');
+			flow.write('phase', 'converted');
 			currentPhase = 'converted';
 			console.group(`GitHub App Conversion Result - ${currentFlow === 'user' ? 'User Org' : 'GlueOps'}`);
 			console.log('App ID:', data.id);
@@ -496,31 +479,31 @@
 			if (currentFlow === 'glueops') {
 				// First creation in glueops-rocks
 				userOrgApp = data;
-				sessionStorage.setItem('github-user-app-details', JSON.stringify(data));
+				flow.writeJson('app', data);
 			}
 			
 			const orgName = currentFlow === 'user' ? 
-				(sessionStorage.getItem('glueops-org-name') ?? data.owner?.login) :
+				(flow.read('tenantOrgName') ?? data.owner?.login) :
 				'glueops-rocks';
 				
 			if (data.slug && orgName) {
 				const installUrl = `https://github.com/organizations/${orgName}/settings/apps/${data.slug}/installations`;
-				sessionStorage.setItem('github-app-install-url', installUrl);
-				sessionStorage.setItem('github-app-slug', data.slug);
+				flow.write('installUrl', installUrl);
+				flow.write('appSlug', data.slug);
 				installManagementUrl = installUrl;
 				directInstallUrl = `https://github.com/apps/${data.slug}/installations/select_target`;
 				console.log('Install / manage URL for this app:', installUrl);
 				console.log('Direct install URL:', `https://github.com/apps/${data.slug}/installations/select_target`);
 			}
 			
-			const existingInstallation = sessionStorage.getItem('github-installation-id');
+			const existingInstallation = flow.read('installationId');
 			if (existingInstallation) {
 				lastInstallationId = existingInstallation;
 			}
 			console.log('Stored installation ID:', existingInstallation ?? '(not installed yet)');
 			console.groupEnd();
 
-			sessionStorage.setItem('github-app-converted', 'true');
+			flow.write('converted', 'true');
 			isInActiveFlow = true;
 			
 			// Redirect to install flow with direct organization targeting after countdown
@@ -550,7 +533,7 @@
 			}
 		} catch (error) {
 			console.error('Error converting manifest code:', error);
-			sessionStorage.setItem('github-app-phase', 'conversion-error');
+			flow.write('phase', 'conversion-error');
 			currentPhase = 'conversion-error';
 		} finally {
 			converting = false;
@@ -604,7 +587,7 @@
 			<p>This will permanently delete any stored app credentials and reset the flow. Are you sure?</p>
 			<div class="button-group">
 				<button type="button" class="confirm-btn" on:click={() => {
-					sessionStorage.clear();
+					flow.clearAll();
 					console.log('Storage cleared by user confirmation.');
 					showFinalDetails = false;
 					userOrgApp = null;
