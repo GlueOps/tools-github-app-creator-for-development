@@ -8,6 +8,7 @@ A SvelteKit application that helps you create GitHub apps using app manifests.
 - **Permissions Management**: Select and configure app permissions with a user-friendly interface
 - **Events Selection**: Choose which GitHub events your app should listen to
 - **Manifest Generation**: Automatically generates a properly formatted GitHub app manifest
+- **Terraform Output**: Renders a copy/paste-ready `module "cluster_<env>"` block for the `captain-cluster` Terraform module once the apps are installed
 - **GitHub Integration**: Streamlined process to create apps on GitHub
 
 ## What's Included
@@ -81,6 +82,14 @@ A SvelteKit application that helps you create GitHub apps using app manifests.
 4. **Generate Manifest** to see the JSON configuration
 
 5. **Create GitHub App** - This will open GitHub's app creation page with your manifest
+
+6. **Copy the Terraform block** - Once both installations complete, the final screen renders a ready-to-paste
+   `module "cluster_<environment_name>"` block for the
+   [`captain-cluster`](https://github.com/GlueOps/terraform-module-cloud-multy-prerequisites/tree/main/modules/captain-cluster)
+   module of `terraform-module-cloud-multy-prerequisites`, pre-filled with the new app's credentials.
+   `environment_name` is derived from the captain domain (first DNS label), `?ref=` defaults to the module's
+   latest release (fetched via `/api/module-ref`), and the tenant developer team defaults to `developers` — all three
+   are editable before copying.
 
 ## Development
 
