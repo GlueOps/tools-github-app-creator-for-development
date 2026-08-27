@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import manifestTemplate from '$lib/manifest-template.json';
+	import { buildClusterModuleHcl, environmentNameFromDomain, ADMIN_GITHUB_ORG } from '$lib/hcl';
 
 	let captainDomain = '';
 	let organizationName = '';
@@ -38,6 +39,62 @@
 			console.error('Failed to copy:', err);
 		}
 	}
+
+	// Terraform (HCL) output state
+	const MODULE_REF_PLACEHOLDER = 'vX.Y.Z';
+	let hclEnvironmentName = '';
+	let hclTenantTeam = 'developers';
+	let hclModuleRef = '';
+	let hclModuleRefLoading = false;
+	let hclModuleRefError = '';
+	let hclModuleRefRequested = false;
+
+	async function fetchLatestModuleRef() {
+		if (hclModuleRefRequested) return;
+		hclModuleRefRequested = true;
+		hclModuleRefLoading = true;
+		hclModuleRefError = '';
+		try {
+			const resp = await fetch('/api/module-ref');
+			if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+			const data = await resp.json();
+			if (data.ref && !hclModuleRef) hclModuleRef = data.ref;
+		} catch (err) {
+			console.warn('Could not fetch latest module release tag:', err);
+			hclModuleRefError = 'Could not fetch the latest module release; set ?ref= manually.';
+		} finally {
+			hclModuleRefLoading = false;
+		}
+	}
+
+	$: tenantOrgName =
+		(typeof localStorage !== 'undefined' && localStorage.getItem('glueops-org-name')) || organizationName || '';
+
+	$: if (bothAppsComplete && userOrgApp && !hclEnvironmentName) {
+		const storedDomain =
+			(typeof localStorage !== 'undefined' && localStorage.getItem('glueops-captain-domain')) || captainDomain;
+		hclEnvironmentName = environmentNameFromDomain(storedDomain);
+	}
+
+	$: if (bothAppsComplete && userOrgApp && typeof window !== 'undefined') {
+		fetchLatestModuleRef();
+	}
+
+	$: hclOutput =
+		bothAppsComplete && userOrgApp
+			? buildClusterModuleHcl({
+					environmentName: hclEnvironmentName,
+					moduleRef: hclModuleRef || MODULE_REF_PLACEHOLDER,
+					githubOauthAppClientId: String(userOrgApp.client_id ?? ''),
+					githubOauthAppClientSecret: String(userOrgApp.client_secret ?? ''),
+					githubTenantAppId: String(userOrgApp.id ?? ''),
+					githubTenantAppInstallationId: String(userOrgApp.user_installation_id ?? ''),
+					githubTenantAppB64encPrivateKey: userOrgApp.pem ? btoa(userOrgApp.pem) : '',
+					adminGithubOrgName: ADMIN_GITHUB_ORG,
+					tenantGithubOrgName: tenantOrgName,
+					tenantDeveloperTeam: hclTenantTeam
+				})
+			: '';
 
 	// Check for active flow IMMEDIATELY to prevent form flashing
 	if (typeof window !== 'undefined') {
@@ -545,6 +602,11 @@
 					lastInstallationId = '';
 					installManagementUrl = '';
 					directInstallUrl = '';
+					hclEnvironmentName = '';
+					hclTenantTeam = 'developers';
+					hclModuleRef = '';
+					hclModuleRefError = '';
+					hclModuleRefRequested = false;
 				}}>Yes, Clear Everything</button>
 				<button type="button" class="cancel-btn" on:click={() => showClearConfirm = false}>Cancel</button>
 			</div>
@@ -629,6 +691,49 @@
 				</div>
 			</div>
 			
+			<!-- Terraform module block -->
+			<h3>🧱 Terraform: captain-cluster module block</h3>
+			<p class="note hcl-intro">
+				Paste this into the tenant repo's <code>tenant.tf</code>. Values are pre-filled from the app you just created; adjust the inputs below to tweak the generated block.
+			</p>
+			<div class="hcl-options">
+				<div class="form-group">
+					<label for="hclEnvironmentName">environment_name</label>
+					<input id="hclEnvironmentName" bind:value={hclEnvironmentName} placeholder="nonprod" />
+					<small>Derived from the captain domain (first DNS label). Module label becomes <code>cluster_{hclEnvironmentName || '…'}</code>.</small>
+				</div>
+				<div class="form-group">
+					<label for="hclTenantTeam">Tenant developer team</label>
+					<input id="hclTenantTeam" bind:value={hclTenantTeam} placeholder="developers" />
+					<small>Vault reader group: <code>{tenantOrgName}:{hclTenantTeam || '…'}</code></small>
+				</div>
+				<div class="form-group">
+					<label for="hclModuleRef">Module ?ref=</label>
+					<input id="hclModuleRef" bind:value={hclModuleRef} placeholder={hclModuleRefLoading ? 'Fetching latest release…' : MODULE_REF_PLACEHOLDER} />
+					<small>
+						{#if hclModuleRefLoading}
+							Fetching latest release of terraform-module-cloud-multy-prerequisites…
+						{:else if hclModuleRefError}
+							<span class="warn">{hclModuleRefError}</span>
+						{:else}
+							Latest release of terraform-module-cloud-multy-prerequisites; override to pin a different version.
+						{/if}
+					</small>
+				</div>
+			</div>
+			<div class="hcl-output">
+				<div class="hcl-toolbar">
+					<span>{hclOutput.split('\n').length} lines · HCL</span>
+					<button type="button" class="copy-btn" on:click={() => copyToClipboard(hclOutput, 'hcl')}>
+						{copiedField === 'hcl' ? '✓ Copied!' : '📋 Copy HCL'}
+					</button>
+				</div>
+				<textarea readonly rows="36" spellcheck="false" on:focus={(e) => e.currentTarget.select()}>{hclOutput}</textarea>
+			</div>
+			{#if !userOrgApp.user_installation_id}
+				<p class="note warn">Installation in {tenantOrgName} is still pending — <code>github_tenant_app_installation_id</code> will be empty until it completes.</p>
+			{/if}
+
 			<!-- Management Links -->
 			<h3>🔗 Management Links</h3>
 			<div class="credential-grid">
@@ -717,6 +822,17 @@
 	.copy-btn:hover{background:#2ea043}
 	.copy-btn:disabled{background:#4c5157;cursor:not-allowed;opacity:.6}
 	.note{margin:.5rem 0 0 0;font-size:.8rem;color:#7d8590;font-style:italic}
+	.note.warn,.warn{color:#d29922}
+	.hcl-intro{margin-bottom:1rem}
+	.hcl-intro code{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:.05rem .3rem;font-size:.75rem}
+	.hcl-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1rem}
+	.hcl-options .form-group{margin:0}
+	.hcl-options small{display:block;margin-top:.3rem;font-size:.72rem;color:#7d8590}
+	.hcl-options small code{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:.05rem .3rem}
+	.hcl-output{border:1px solid #30363d;border-radius:6px;background:#161b22;overflow:hidden}
+	.hcl-toolbar{display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;border-bottom:1px solid #30363d;font-size:.75rem;color:#7d8590}
+	.hcl-output textarea{display:block;width:100%;border:none;border-radius:0;background:#0d1117;color:#e6edf3;padding:.75rem;font-family:Menlo,Consolas,monospace;font-size:.75rem;line-height:1.4;resize:vertical;white-space:pre;overflow:auto;box-sizing:border-box}
+	.hcl-output textarea:focus{outline:2px solid #1f6feb;outline-offset:-2px}
 	.action-buttons{display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap}
 	.cleanup-btn{margin-top:0;padding:1rem 2rem;background:#da3633;color:#fff;border:none;border-radius:6px;font-size:1.1rem;cursor:pointer;width:100%;font-weight:600}
 	.cleanup-btn:hover{background:#b62b28}
