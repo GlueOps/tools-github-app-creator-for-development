@@ -24,7 +24,7 @@
 		"@tailwindcss/forms": "0.5.11",
 		"@tailwindcss/typography": "0.5.20",
 		"autoprefixer": "10.5.4",
-		"devalue": "5.8.2",
+		"devalue": "5.9.0",
 		"svelte": "5.56.8",
 		"svelte-check": "4.7.4",
 		"tailwindcss": "4.3.3",
