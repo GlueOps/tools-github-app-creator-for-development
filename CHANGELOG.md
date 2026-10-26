@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.3](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.4.2...v0.4.3) (2026-10-26)
+
+
+### Bug Fixes
+
+* **docker:** bump node base image for CVE-2026-111497 ([#271](https://github.com/GlueOps/tools-github-app-creator-for-development/issues/271)) ([af38cc2](https://github.com/GlueOps/tools-github-app-creator-for-development/commit/af38cc2fbe84dea647205d1efcb6ac06c7a98e67))
+
 ## [0.4.2](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.4.1...v0.4.2) (2026-08-27)
 
 
