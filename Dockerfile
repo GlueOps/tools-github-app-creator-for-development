@@ -10,9 +10,6 @@ COPY package.json package-lock.json* ./
 # Install all dependencies (including devDependencies for build)
 RUN npm ci && npm cache clean --force
 
-# Add adapter-node for Docker builds
-RUN npm install @sveltejs/adapter-node
-
 # Build args for version info (defaults for local builds)
 ARG PUBLIC_APP_VERSION=UNKNOWN
 ARG PUBLIC_APP_BUILD_SHA_SHORT=UNKNOWN
