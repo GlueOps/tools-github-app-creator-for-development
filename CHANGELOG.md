@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.4](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.4.3...v0.4.4) (2026-10-26)
+
+
+### Bug Fixes
+
+* **docker:** pin @sveltejs/adapter-node to 5.5.7 ([#275](https://github.com/GlueOps/tools-github-app-creator-for-development/issues/275)) ([4108ba3](https://github.com/GlueOps/tools-github-app-creator-for-development/commit/4108ba35efeb309560007be6c2d088d1c7f147bf))
+
 ## [0.4.3](https://github.com/GlueOps/tools-github-app-creator-for-development/compare/v0.4.2...v0.4.3) (2026-10-26)
 
 
