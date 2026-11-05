@@ -1,5 +1,5 @@
 # Use Node.js 24 LTS version
-FROM node:24-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS builder
+FROM node:24-alpine@sha256:a34ab6d7f6f4813f4d0c5469d74685604b962fbdbf5793a7bc7b4998ecb867c8 AS builder
 
 # Set working directory
 WORKDIR /app
@@ -47,7 +47,7 @@ ENV PUBLIC_APP_BUILD_DATE=$PUBLIC_APP_BUILD_DATE
 RUN npm run build
 
 # Production stage
-FROM node:24-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS runner
+FROM node:24-alpine@sha256:a34ab6d7f6f4813f4d0c5469d74685604b962fbdbf5793a7bc7b4998ecb867c8 AS runner
 
 # Set working directory
 WORKDIR /app
